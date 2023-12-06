@@ -1,0 +1,101 @@
+service: aos-greenmovil-dashboard-api
+frameworkVersion: '3'
+
+provider:
+    name: aws
+    runtime: nodejs18.x
+    stage: ${opt:stage}
+    region: ${param:region}
+    memorySize: ${param:memorySize}
+    timeout: ${param:timeout}
+    vpc:
+        securityGroupIds:
+            'Fn::Split':
+                - ','
+                - ${param:securityGroupIds}
+        subnetIds:
+            'Fn::Split':
+                - ','
+                - ${param:subnetIds}
+
+    httpApi:
+        cors:
+            allowedOrigins:
+                - '*'
+            allowedHeaders:
+                - '*'
+            allowedMethods:
+                - '*'
+            allowCredentials: false
+            maxAge: 2 # in seconds
+        authorizers:
+            serviceAuthorizer:
+                type: jwt
+                identitySource: $request.header.Authorization
+                issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg
+                audience:
+                    - dev-userpool-client
+
+    environment:
+        DB_HOST: ${param:dbhost}
+        DB_USER: ${param:dbuser}
+        DB_PASSWD: ${param:dbpasswd}
+        DB_DATABASE: ${param:dbdatabase}
+
+functions:
+    getCountVehicles:
+        handler: dashboard/countVehicles.handler
+        timeout: 10
+        events:
+        - httpApi:
+            path: /dashboard/countVehicles
+            method: get
+    getAllConnectorChargebox:
+        handler: dashboard/all-connector-chargebox.handler
+        timeout: 10
+        events:
+        - httpApi:
+            path: /dashboard/all-connector-chargebox
+            method: get
+    getConnectorAvailable:
+        handler: dashboard/connector-available.handler
+        timeout: 10
+        events:
+        - httpApi:
+            path: /dashboard/connector-available
+            method: get
+    getCountConector:
+        handler: dashboard/countConectors.handler
+        timeout: 10
+        events:
+            - httpApi:
+                  path: /dashboard/countConectors
+                  method: get
+    getCountChargeBox:
+        handler: dashboard/countChargeBox.handler
+        timeout: 10
+        events:
+            - httpApi:
+                  path: /dashboard/countChargerBox
+                  method: get
+    getChargeboxKPI:
+        handler: dashboard/chargeboxKPI.handler
+        events:
+            - httpApi:
+                  path: /dashboard/chargebox-kpi
+                  method: get              
+    getConnectorsKPI:
+        handler: dashboard/connectorsKPI.handler
+        events:
+            - httpApi:
+                  path: /dashboard/connectors-kpi
+                  method: get              
+
+plugins:
+    - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3211
+    websocketPort: 3212
+    lambdaPort: 3213

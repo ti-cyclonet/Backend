@@ -1,0 +1,22 @@
+version: 0.2
+
+run-as: root
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - cd ${API_DIR}
+      - aws configure set aws_access_key_id ${AK}
+      - aws configure set aws_secret_access_key ${SAK}
+      - aws configure set default.region ${REGION}      
+      - npm install -g serverless
+      - npm install
+  build:
+    commands:
+      - serverless deploy --param="client=aos" --param="projectName=boilerplate" --param="type=api" --param="environment=${ENV}" --stage=${STAGE} --param="region=${REGION}" --param="memorySize=128" --param="timeout=20" --param="logRetentionInDays=3" --param="dbhost=${DB_HOST}" --param="dbuser=${DB_USER}" --param="dbpasswd=${DB_PASSWD}" --param="dbdatabase=${DB_DATABASE}" --param="securityGroupIds=${SECGROUPS}" --param="subnetIds=${SUBNETS}"
+
+cache:
+  paths:
+    - node_modules

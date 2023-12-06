@@ -1,0 +1,68 @@
+service: aos-greenmovil-chargerbox-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage}
+  region: ${param:region}
+  memorySize: ${param:memorySize}
+  timeout: ${param:timeout}
+  vpc:
+    securityGroupIds:
+      "Fn::Split":
+        - ","
+        - ${param:securityGroupIds}
+    subnetIds:
+     "Fn::Split":
+        - ","
+        - ${param:subnetIds}
+
+  httpApi:
+    cors: 
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - "*"
+      allowCredentials: false
+      maxAge: 5 # in seconds
+    authorizers:
+      serviceAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg        
+        audience:
+          - dev-userpool-client
+
+  environment:
+    DB_HOST:  ${param:dbhost}
+    DB_USER:  ${param:dbuser}
+    DB_PASSWD:  ${param:dbpasswd}
+    DB_DATABASE:  ${param:dbdatabase}
+
+functions:
+  api:
+    handler: chargebox/chargeboxes.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /chargebox
+          method: get
+  chargeboxid:
+    handler: chargebox/chargebox-id.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /chargebox/{id}
+          method: get
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+    websocketPort: 3002
+    lambdaPort: 3003

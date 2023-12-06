@@ -1,0 +1,94 @@
+service: aos-greenmovil-transaction-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage}
+  region: ${param:region}
+  memorySize: ${param:memorySize}
+  timeout: ${param:timeout}
+    
+  vpc:
+    securityGroupIds:
+      "Fn::Split":
+        - ","
+        - ${param:securityGroupIds}
+    subnetIds:
+     "Fn::Split":
+        - ","
+        - ${param:subnetIds}
+
+  httpApi:
+    cors: 
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - "*"
+      allowCredentials: false
+      maxAge: 5 # in seconds
+    authorizers:
+      serviceAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg        
+        audience:
+          - dev-userpool-client
+
+  environment:
+    DB_HOST:  ${param:dbhost}
+    DB_USER:  ${param:dbuser}
+    DB_PASSWD:  ${param:dbpasswd}
+    DB_DATABASE:  ${param:dbdatabase}
+
+functions:
+  transactions:
+    handler: transaction/transactions.handler
+    events:
+      - httpApi:
+          path: /transaction
+          method: get
+  transactionsbychargebox:
+    handler: transaction/transactionsbychargebox.handler
+    events:
+      - httpApi:
+          path: /transaction/chargebox/{chargebox_id}
+          method: get
+  transactionsbyconnector:
+    handler: transaction/transactionsbyconnector.handler
+    events:
+      - httpApi:
+          path: /transaction/connector/{connector_pk}
+          method: get
+  metervaluesbytrx:
+    handler: transaction/metervaluesbytrx.handler
+    events:
+      - httpApi:
+          path: /transaction/{id}/metervalues
+          method: get  
+  metervaluesbytrxbymeasurand:
+    handler: transaction/metervaluesbytrxbymeasurand.handler
+    events:
+      - httpApi:
+          path: /transaction/{id}/metervalues/{measurand}
+          method: get
+  transactionsbyconnectorbydate:
+    handler: transaction/transactionsbyconnectorbydate.handler
+    events:
+      - httpApi:
+          path: /transaction/connector/{connector_pk}/date/{date}
+          method: get
+  currenttransactionbyconnector:
+    handler: transaction/currenttransactionbyconnector.handler
+    events:
+      - httpApi:
+          path: /transaction/connector/{connector_pk}/current
+          method: get                      
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3101

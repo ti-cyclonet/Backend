@@ -1,0 +1,83 @@
+service: aos-greenmovil-connector-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage}
+  region: ${param:region}
+  memorySize: ${param:memorySize}
+  timeout: ${param:timeout}
+    
+  vpc:
+    securityGroupIds:
+      "Fn::Split":
+        - ","
+        - ${param:securityGroupIds}
+    subnetIds:
+     "Fn::Split":
+        - ","
+        - ${param:subnetIds}
+
+  httpApi:
+    cors: 
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - "*"
+      allowCredentials: false
+      maxAge: 5 # in seconds
+    authorizers:
+      serviceAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg        
+        audience:
+          - dev-userpool-client
+
+  environment:
+    DB_HOST:  ${param:dbhost}
+    DB_USER:  ${param:dbuser}
+    DB_PASSWD:  ${param:dbpasswd}
+    DB_DATABASE:  ${param:dbdatabase}
+
+functions:
+  connectors:
+    handler: connector/connectors.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /connector
+          method: get
+  connectors_status:
+    handler: connector/connector-status.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /connector-status/{connector_pk}
+          method: get
+  connectors_status_pk:
+    handler: connector/connector-status-pk.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /connector-status-pk/{connector_id}/{chargebox_id}
+          method: get
+  connectorchargebox:
+    handler: connector/connector-chargebox.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /connector-chargebox/{chargerbox_id}
+          method: get        
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3111
+    websocketPort: 3112
+    lambdaPort: 3113
