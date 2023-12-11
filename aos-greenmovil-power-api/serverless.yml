@@ -1,0 +1,139 @@
+service: aos-greenmovil-power-api
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage}
+  region: ${param:region}
+  memorySize: ${param:memorySize}
+  timeout: ${param:timeout}
+  vpc:
+    securityGroupIds:
+      "Fn::Split":
+        - ","
+        - ${param:securityGroupIds}
+    subnetIds:
+      "Fn::Split":
+        - ","
+        - ${param:subnetIds}
+
+  httpApi:    
+    cors: 
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - "*"
+      allowCredentials: false
+      maxAge: 2 # in seconds
+    authorizers:
+      serviceAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg
+        audience:
+          - dev-userpool-client
+
+  environment:
+    DB_HOST: ${param:dbhost}
+    DB_USER: ${param:dbuser}
+    DB_PASSWD: ${param:dbpasswd}
+    DB_DATABASE: ${param:dbdatabase}
+    BASEPATH_API_POWERLIMITS: ${param:basepathapipowerlimits}
+functions:
+  getPower:
+    handler: power/powerKPI.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/{functional_unit_pk}
+          method: get
+  getPowerFUs:
+    handler: power/fuspowerkpi.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/functionalunits
+          method: get
+  getChargeGroups:
+    handler: power/chargerGroups.handler
+    timeout: 30
+    events:
+      - httpApi:
+          path: /power/get-charge-groups
+          method: get
+  setChargeGroup:
+    handler: power/cudChargeGroup.handler
+    timeout: 20
+    events:
+      - httpApi:
+          path: /power/set-charge-group
+          method: post
+  updChargeGroup:
+    handler: power/cudChargeGroup.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/upd-charge-group
+          method: put
+  delChargeGroup:
+    handler: power/cudChargeGroup.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/del-charge-group/{fuunid}
+          method: delete
+  delCharge:
+    handler: power/cudChargeGroup.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/del-charger/{fuunid}/{chrgpk}
+          method: delete
+
+  delChargeProfile:
+    handler: power/chargerProfile.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/del-charge-profile/{fuunid}
+          method: delete
+  setChargeProfile:
+    handler: power/chargerProfile.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/set-charge-profile/{fuunid}
+          method: post
+  getChargerAvailable:
+    handler: power/chargerAvailable.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/get-available-charger
+          method: get
+  getByIdChargeGroup:
+    handler: power/chargegroupbyid.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /power/chargegroup/{cbgid}
+          method: get
+  getFunctionalUnitsDashboard:
+    handler: power/functional-units-dashboard.handler
+    events:
+      - httpApi:
+          path: /power/functional-units-dashboard
+          method: get              
+
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3603
+    websocketPort: 3604
+    lambdaPort: 3605

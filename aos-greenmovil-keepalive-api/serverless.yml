@@ -1,0 +1,87 @@
+service: aos-greenmovil-keepalive-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage}
+  region: ${param:region}
+  memorySize: ${param:memorySize}
+  timeout: ${param:timeout}
+    
+  vpc:
+    securityGroupIds:
+      "Fn::Split":
+        - ","
+        - ${param:securityGroupIds}
+    subnetIds:
+     "Fn::Split":
+        - ","
+        - ${param:subnetIds}
+
+  httpApi:
+    cors: 
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - "*"
+      allowCredentials: false
+      maxAge: 5 # in seconds
+    authorizers:
+      serviceAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg        
+        audience:
+          - dev-userpool-client
+
+  environment:
+    DB_HOST:  ${param:dbhost}
+    DB_USER:  ${param:dbuser}
+    DB_PASSWD:  ${param:dbpasswd}
+    DB_DATABASE:  ${param:dbdatabase}
+    QUEUE_TRIGGERMESSAGE: { Ref: triggermessage }
+
+functions:
+  triggerMessageDispatcher:
+    handler: keepalive/triggerMessageDispatcher.handler
+    events:
+      - httpApi:
+          path: /requestFullStatus
+          method: get
+      - eventBridge:
+          enabled: false
+          schedule: rate(5 minutes)    
+  SQSTriggerMessage:
+    handler: keepalive/SQSTriggerMessage.handler
+    events:
+      - sqs: 
+          arn:
+            Fn::GetAtt:
+              - triggermessage
+              - Arn
+          maximumConcurrency: 10
+
+resources:
+  Resources:
+    triggermessage:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-${self:provider.stage}-sqs-triggermessage      
+
+plugins:
+  - serverless-offline
+  - serverless-offline-sqs
+
+custom:
+  serverless-offline:
+    httpPort: 3149
+
+  serverless-offline-sqs:
+    autoCreate: true
+    apiVersion: "2012-11-05"
+    endpoint: http://0.0.0.0:9324
+    region: us-east-1
+    skipCacheInvalidation: false    

@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "serverless-offline": "^13.2.1"
+  },
+  "dependencies": {
+    "moment-timezone": "^0.5.43",
+    "mysql2": "^3.6.0",
+    "node-fetch": "^2.7.0"
+  }
+}

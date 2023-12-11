@@ -2,69 +2,85 @@ const { dbconfig } = require('../config/dbconfig');
 const mysql = require('mysql2/promise'); // Utilizamos la versión promise para manejar promesas
 
 var  moment = require("moment-timezone");
-moment.tz.setDefault("America/Bogota");
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+moment.tz.setDefault(timeZone);
 
 exports.handler = async (event) => {   
 
-  //console.log(event);
+  //console.log("Llamando API de errores.....");
   //console.log(dbconfig);
-  const connection = await mysql.createConnection(dbconfig); 
-
+  const connection = await mysql.createConnection(dbconfig);
+  await connection.query('SET time_zone = "-05:00";');
+  
     try {
-        //console.log(event);
-        
-        let startdate, enddate;
-
-        console.log(event.queryStringParameters);
-        if (event.queryStringParameters && 
-            event.queryStringParameters.startdate && event.queryStringParameters.enddate &&
-            (moment(event.queryStringParameters.startdate).isValid() && moment(event.queryStringParameters.enddate).isValid())) {            
-
-            startdate= new Date(event.queryStringParameters.startdate);
-            enddate= new Date(event.queryStringParameters.enddate);    
-
-        }else{
-            startdate = new Date();
-            startdate.setMonth(startdate.getMonth()-3);
-            enddate = new Date();
-        }            
-
+      let startdate, enddate;
+      console.log(event.queryStringParameters);
+     //console.log('TIMEZONE:   '+Intl.DateTimeFormat().resolvedOptions().timeZone);
+     if (event.queryStringParameters &&
+      event.queryStringParameters.startdate && event.queryStringParameters.enddate &&
+      (moment(event.queryStringParameters.startdate).isValid()
+       && moment(event.queryStringParameters.enddate).isValid())
+       ) {
+   
+         startdate= moment(event.queryStringParameters.startdate);
+         startdate=startdate.format('YYYY-MM-DDTHH:mm:ss');
+  
+         enddate= moment(event.queryStringParameters.enddate); 
+         enddate=enddate.format('YYYY-MM-DDTHH:mm:ss');
+  
         console.log(startdate);
-        console.log(enddate);
+       } else {
+        
+        startdate = moment();
+        startdate = startdate.subtract(3, 'months');
+        startdate = startdate.format('YYYY-MM-DDTHH:mm:ss');
+  
+        //console.log('NN');
+        
+        console.log(startdate);
+        enddate = moment();
+        enddate = enddate.format('YYYY-MM-DDTHH:mm:ss');
+      }
+  
+      console.log(startdate);
+      console.log(enddate);
+  
 
         // Realiza la consulta SELECT
-        const query = `SELECT 
-            e.error_pk,
-            e.error_timestamp,
-            cb.charge_box_id,
-            cb.alias,
-            e.connector_pk,
-            e.transaction_pk,
-            e.error_code,
-            e.error_description,
-            e.chargebox_status,
-            e.vendor_id,
-            e.vendor_error_code
-        FROM 
-            error e
-        JOIN 
-            charge_box cb ON e.charge_box_pk = cb.charge_box_pk
-        WHERE 
-            e.error_timestamp BETWEEN ? AND ?`;
+        const query = `
+        SELECT @rank:=COALESCE (@rank,0)+1 AS rownum, 
+                          e.error_pk,
+                          CAST(e.error_timestamp AS char) as error_timestamp,
+                          cb.charge_box_id,
+                          cb.alias,
+                          co.connector_id,
+                          e.transaction_pk,
+                          e.error_code,
+                          e.error_description,
+                          e.chargebox_status,
+                          e.vendor_id,
+                          e.vendor_error_code
+                        FROM error e JOIN charge_box cb 
+                        ON e.charge_box_pk = cb.charge_box_pk
+                        join connector co
+                        on cb.charge_box_id = co.charge_box_id
+                        WHERE e.error_timestamp BETWEEN STR_TO_DATE(?, '%Y-%m-%dT%H:%i:%s') AND STR_TO_DATE(?, '%Y-%m-%dT%H:%i:%s')
+                        order by e.error_timestamp desc, co.connector_id asc`;
+                    
         const queryParams = [startdate,enddate];
-
         console.log(mysql.format(query, queryParams));
 
-        const [rows] = await connection.execute(query, queryParams);
+        const [rows] = await connection.query(query, queryParams);
+        //console.log(rows);
         
-
         const jsonResp = rows.map(row => {
             return {
+                rownum: row.rownum,
                 id: row.error_pk,
                 errorTimestamp: row.error_timestamp,
                 chargeboxId: row.charge_box_id,
                 chargeboxAlias: row.alias,
-                connectorId: row.connector_pk,
+                connectorId: row.connector_id,
                 transactionId: row.transaction_pk,
                 errorCode: row.error_code,
                 errorDescription: row.error_description,

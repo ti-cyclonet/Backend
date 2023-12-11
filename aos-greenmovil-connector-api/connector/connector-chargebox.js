@@ -1,11 +1,16 @@
 const { dbconfig } = require("../config/dbconfig");
 const mysql = require("mysql2/promise");
+var  moment = require("moment-timezone");
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+moment.tz.setDefault(timeZone);
+
 
 exports.handler = async (event) => {
 
   //console.log(event);
   //console.log(dbconfig);
   const connection = await mysql.createConnection(dbconfig);
+  await connection.query('SET time_zone = "-05:00";');
   try {
 
     const { chargerbox_id } = event.pathParameters;
@@ -16,13 +21,16 @@ exports.handler = async (event) => {
                       c.connector_pk,
                       c.connector_id,
                       c.alias,
-                      IFNULL(cs.status, 'Offline') AS status,
-                      cs.error_code,
+                      Case When fugr_fuid is null then 'Inactive' Else                          
+                      CASE WHEN IFNULL(cs.status, 'Offline') In( 'Faulted','Unavailable','SuspendedEVSE','SuspendedEV') THEN 'Faulted' 
+                      ELSE IFNULL(cs.status, 'Offline') End End AS status,
+                  cs.error_code,
                       cs.error_info,
                       cs.vendor_error_code,
-                      cs.max_timestamp,
+                      CAST(cs.max_timestamp AS char) as max_timestamp,
                       IFNULL(cmv.soc, 'N/A') AS soc
                   FROM charge_box cb
+                  Left Join functionalunits_group on Coalesce( fugr_chargeboxpk, -1 ) =charge_box_pk
                   JOIN connector c ON cb.charge_box_id = c.charge_box_id AND cb.charge_box_id = ?
                   LEFT JOIN (
                       SELECT
@@ -48,6 +56,7 @@ exports.handler = async (event) => {
                           MAX(CASE WHEN measurand = 'SoC' THEN value END) AS soc
                       FROM connector_meter_value
                       WHERE measurand = 'SoC' AND value_timestamp >= NOW() - INTERVAL 5 MINUTE
+                      AND transaction_pk is not null
                       GROUP BY connector_pk
                   ) cmv ON c.connector_pk = cmv.connector_pk;`;
 

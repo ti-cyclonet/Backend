@@ -1,5 +1,7 @@
 const { dbconfig } = require('../config/dbconfig');
 const mysql = require('mysql2/promise'); // Utilizamos la versión promise para manejar promesas
+var  moment = require("moment-timezone");
+moment.tz.setDefault(Intl.DateTimeFormat().resolvedOptions().timeZone);
 
 
 exports.handler = async (event) => {
@@ -7,7 +9,7 @@ exports.handler = async (event) => {
   //console.log(event);
   //console.log(dbconfig);
   const connection = await mysql.createConnection(dbconfig);
-
+  await connection.query('SET time_zone = "-05:00";');
   try {
 
     //console.log(event);

@@ -1,16 +1,21 @@
 const { dbconfig } = require("../config/dbconfig");
 const mysql = require("mysql2/promise");
+var  moment = require("moment-timezone");
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+moment.tz.setDefault(timeZone);
 
 exports.handler = async (event) => {
 
   //console.log(event);
   //console.log(dbconfig);
   const connection = await mysql.createConnection(dbconfig);
-
+  await connection.query('SET time_zone = "-05:00";');
   try {
     const { connector_pk } = event.pathParameters;
 
-    const query = `SELECT status, MAX(CAST(status_timestamp AS CHAR)) AS timestamp FROM connector_status WHERE connector_pk = ? GROUP BY status`;
+    const query = `SELECT status, 
+    MAX(CAST(status_timestamp AS CHAR)) AS timestamp 
+    FROM connector_status WHERE connector_pk = ? GROUP BY status`;
     const queryParams = [connector_pk];
 
     console.log(mysql.format(query, queryParams));

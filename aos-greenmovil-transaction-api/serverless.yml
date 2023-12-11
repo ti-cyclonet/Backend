@@ -46,42 +46,56 @@ provider:
 functions:
   transactions:
     handler: transaction/transactions.handler
+    timeout: 20
     events:
       - httpApi:
           path: /transaction
           method: get
   transactionsbychargebox:
     handler: transaction/transactionsbychargebox.handler
+    timeout: 20    
     events:
       - httpApi:
           path: /transaction/chargebox/{chargebox_id}
           method: get
   transactionsbyconnector:
     handler: transaction/transactionsbyconnector.handler
+    timeout: 20    
     events:
       - httpApi:
           path: /transaction/connector/{connector_pk}
           method: get
+  metervaluesbyconnector:
+    handler: transaction/metervaluesbyconnector.handler
+    timeout: 20    
+    events:
+      - httpApi:
+          path: /transaction/{connector_pk}/connector
+          method: get  
   metervaluesbytrx:
     handler: transaction/metervaluesbytrx.handler
+    timeout: 20    
     events:
       - httpApi:
           path: /transaction/{id}/metervalues
           method: get  
   metervaluesbytrxbymeasurand:
     handler: transaction/metervaluesbytrxbymeasurand.handler
+    timeout: 20
     events:
       - httpApi:
           path: /transaction/{id}/metervalues/{measurand}
           method: get
   transactionsbyconnectorbydate:
     handler: transaction/transactionsbyconnectorbydate.handler
+    timeout: 20    
     events:
       - httpApi:
           path: /transaction/connector/{connector_pk}/date/{date}
           method: get
   currenttransactionbyconnector:
     handler: transaction/currenttransactionbyconnector.handler
+    timeout: 20    
     events:
       - httpApi:
           path: /transaction/connector/{connector_pk}/current
@@ -92,3 +106,5 @@ plugins:
 custom:
   serverless-offline:
     httpPort: 3101
+    websocketPort: 3102
+    lambdaPort: 3103

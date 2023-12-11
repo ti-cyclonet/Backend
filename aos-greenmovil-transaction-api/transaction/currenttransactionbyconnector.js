@@ -1,20 +1,20 @@
 const { dbconfig } = require('../config/dbconfig');
 const mysql = require('mysql2/promise'); // Utilizamos la versión promise para manejar promesas
-
-var moment = require("moment-timezone");
-moment.tz.setDefault("America/Bogota");
+var  moment = require("moment-timezone");
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+moment.tz.setDefault(timeZone);
 
 exports.handler = async (event) => {
 
     //console.log(event);
     //console.log(dbconfig);
     const connection = await mysql.createConnection(dbconfig);
-
+    await connection.query('SET time_zone = "-05:00";');
     try {
         const { connector_pk } = event.pathParameters;
 
         // Realiza la consulta SELECT
-        const query = 'SELECT * FROM transaction t where t.connector_pk = ? AND t.stop_event_timestamp is null';
+        const query = `SELECT * FROM transaction t where t.connector_pk = ? AND t.stop_event_timestamp is null order by start_timestamp desc`;
         const queryParams = [connector_pk];
 
         console.log(mysql.format(query, queryParams));

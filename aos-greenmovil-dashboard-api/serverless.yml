@@ -52,7 +52,7 @@ functions:
             method: get
     getAllConnectorChargebox:
         handler: dashboard/all-connector-chargebox.handler
-        timeout: 10
+        timeout: 20
         events:
         - httpApi:
             path: /dashboard/all-connector-chargebox
@@ -62,7 +62,7 @@ functions:
         timeout: 10
         events:
         - httpApi:
-            path: /dashboard/connector-available
+            path: /dashboard/connector-available/{functional_unit_pk}
             method: get
     getCountConector:
         handler: dashboard/countConectors.handler
@@ -82,13 +82,19 @@ functions:
         handler: dashboard/chargeboxKPI.handler
         events:
             - httpApi:
-                  path: /dashboard/chargebox-kpi
+                  path: /dashboard/chargebox-kpi/{functional_unit_pk}
                   method: get              
     getConnectorsKPI:
         handler: dashboard/connectorsKPI.handler
         events:
             - httpApi:
-                  path: /dashboard/connectors-kpi
+                  path: /dashboard/connectors-kpi/{functional_unit_pk}
+                  method: get              
+    getAllFunctionalUnits:
+        handler: dashboard/all-functional-units.handler
+        events:
+            - httpApi:
+                  path: /dashboard/all-functional-units
                   method: get              
 
 plugins:

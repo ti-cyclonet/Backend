@@ -57,7 +57,13 @@ functions:
       - httpApi:
           path: /chargebox/{id}
           method: get
-
+  updChargerInfo:
+    handler: chargebox/crud-chargebox.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /chargebox/upd-charge-info
+          method: put
 plugins:
   - serverless-offline
 

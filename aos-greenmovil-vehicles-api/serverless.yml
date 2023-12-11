@@ -45,7 +45,7 @@ provider:
 functions:
   getAllVehicles:
     handler: vehicle/vehicles.handler
-    timeout: 10
+    timeout: 20
     events:
       - httpApi:
           path: /vehicles
@@ -125,5 +125,5 @@ plugins:
   - serverless-offline
 
 custom:
-  serverless-offline:
-    httpPort: 3003
+    serverless-offline:
+      port: 3003

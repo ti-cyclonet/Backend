@@ -1,0 +1,131 @@
+service: aos-greenmovil-functionalunit-api
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage}
+  region: ${param:region}
+  memorySize: ${param:memorySize}
+  timeout: ${param:timeout}
+  vpc:
+    securityGroupIds:
+      "Fn::Split":
+        - ","
+        - ${param:securityGroupIds}
+    subnetIds:
+      "Fn::Split":
+        - ","
+        - ${param:subnetIds}
+
+  httpApi:    
+    cors: 
+      allowedOrigins:
+        - "*"
+      allowedHeaders:
+        - "*"
+      allowedMethods:
+        - "*"
+      allowCredentials: false
+      maxAge: 2 # in seconds
+    authorizers:
+      serviceAuthorizer:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.us-east-1.amazonaws.com/us-east-1_MWPj7HBtg
+        audience:
+          - dev-userpool-client
+
+  environment:
+    DB_HOST: ${param:dbhost}
+    DB_USER: ${param:dbuser}
+    DB_PASSWD: ${param:dbpasswd}
+    DB_DATABASE: ${param:dbdatabase}
+
+functions:
+  getAllFunctionalUnits:
+    handler: functionalunit/functionalunit.handler
+    timeout: 10
+    events:
+      - httpApi:
+          path: /functional-unit
+          method: get
+  #insertVehicle:
+  #  handler: vehicle/register.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles
+  #        method: post
+  #updateVehicle:
+  ##  handler: vehicle/update.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles
+  #        method: put
+  #getByIdVehicle:
+  #  handler: vehicle/vehiclebyid.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{id}
+  #        method: get
+  #deleteVehicle:
+  #  handler: vehicle/delete.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{id}
+  #        method: delete
+  #activateVehicle:
+  #  handler: vehicle/activate.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{id}/activate
+  #        method: put
+  #inactivateVehicle:
+  #  handler: vehicle/inactivate.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{id}/inactivate
+  #        method: put        
+  #getModulesByVehicle:
+  #  handler: module/modulesbyvehicle.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{idVehicle}/modules
+  #        method: get
+  #insertModule:
+  #  handler: module/register.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{idVehicle}/modules
+  #        method: post
+  #updateModule:
+  #  handler: module/update.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{idVehicle}/modules
+  #        method: put   
+  #deleteModule:
+  #  handler: module/delete.handler
+  #  timeout: 10
+  #  events:
+  #    - httpApi:
+  #        path: /vehicles/{idVehicle}/modules/{id}
+  #        method: delete                
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3503
+    websocketPort: 3504
+    lambdaPort: 3505

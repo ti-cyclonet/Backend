@@ -1,37 +1,38 @@
 const { dbconfig } = require('../config/dbconfig');
 const mysql = require('mysql2/promise'); // Utilizamos la versión promise para manejar promesas
 
-var moment = require("moment-timezone");
-moment.tz.setDefault("America/Bogota");
+var  moment = require("moment-timezone");
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+moment.tz.setDefault(timeZone);
 
 exports.handler = async (event) => {
 
     //console.log(event);
     //console.log(dbconfig);
     const connection = await mysql.createConnection(dbconfig);
-
+    await connection.query('SET time_zone = "-05:00";');
     try {
         const { transaction_pk } = event.pathParameters;
 
         // Realiza la consulta SELECT
-        const query = `SELECT 
-            e.error_pk,
-            e.error_timestamp,
-            cb.charge_box_id,
-            cb.alias,
-            e.connector_pk,
-            e.transaction_pk,
-            e.error_code,
-            e.error_description,
-            e.chargebox_status,
-            e.vendor_id,
-            e.vendor_error_code
-          FROM 
-              error e
-          JOIN 
-              charge_box cb ON e.charge_box_pk = cb.charge_box_pk
-          WHERE 
-              e.transaction_pk = ?`;
+        const query = ` SELECT 
+                            e.error_pk,
+                            CAST(e.error_timestamp AS char) as error_timestamp,
+                            cb.charge_box_id,
+                            cb.alias,
+                            co.connector_id,
+                            e.transaction_pk,
+                            e.error_code,
+                            e.error_description,
+                            e.chargebox_status,
+                            e.vendor_id,
+                            e.vendor_error_code
+                        FROM error e JOIN charge_box cb 
+                        ON e.charge_box_pk = cb.charge_box_pk
+                        join connector co
+                        on cb.charge_box_id = co.charge_box_id
+                        WHERE e.transaction_pk = ? 
+                        order by e.error_timestamp desc`;
         const queryParams = [transaction_pk];
 
         console.log(mysql.format(query, queryParams));
@@ -44,7 +45,7 @@ exports.handler = async (event) => {
                 errorTimestamp: row.error_timestamp,
                 chargeboxId: row.charge_box_id,
                 chargeboxAlias: row.alias,
-                connectorId: row.connector_pk,
+                connectorId: row.connector_id,
                 transactionId: row.transaction_pk,
                 errorCode: row.error_code,
                 errorDescription: row.error_description,
